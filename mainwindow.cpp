@@ -1,5 +1,5 @@
 #define BSIZE       2048
-#define _CRT_SECURE_NO_WARNINGS
+//#define _CRT_SECURE_NO_WARNINGS
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     if(IsRunning())
     {
-        QMessageBox::warning(0, QString::fromUtf8("Mchecker"), QString::fromUtf8("Only one instance of the application is allowed. The program will now exit."));
+        QMessageBox::warning(nullptr, QString::fromUtf8("Mchecker"), QString::fromUtf8("Only one instance of the application is allowed. The program will now exit."));
         ::exit(-1);
     }
 
@@ -51,7 +51,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     trayMenu = new QMenu();
 
-    QAction *a_show = 0;
+    QAction *a_show = nullptr;
 
     if(sm->GetDebugLevel()>0)
     {
@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget *parent) :
     qt = new QTimer(this);
     connect(qt, SIGNAL(timeout()), this, SLOT(TimerFunc()));
     qt->start(sm->GetFirstCheckInterval()*1000);
-    myprintfs("Program started.", 0);
+    myprintfs("Program started.", nullptr);
 
     am = new AccountManager();
     am->LoadAccountData();
@@ -111,7 +111,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::TimerFunc()
 {
-    myprintfs("Timer fired.", 0);
+    myprintfs("Timer fired.", nullptr);
     if(i_firstcheck)
     {
         qt->setInterval(sm->GetTimerInterval()*1000);
@@ -155,8 +155,8 @@ void MainWindow::CheckAll()
 {
     if(i_ischecking)
     {
-        if(i_ischecking == 1) myprintfs("Another check is in progress. Aborting...", 0);
-        else myprintfs("Checking is disabled. Aborting...", 0);
+        if(i_ischecking == 1) myprintfs("Another check is in progress. Aborting...", nullptr);
+        else myprintfs("Checking is disabled. Aborting...", nullptr);
         return;
     }
     i_ischecking = 1;
@@ -171,7 +171,7 @@ void MainWindow::CheckAll()
         psnippets = (snippet_container*)calloc(accs, sizeof(snippet_container));
         if(!psnippets)
         {
-            myprintfs("Cannot allocate memory for message check. Aborting.", 0);
+            myprintfs("Cannot allocate memory for message check. Aborting.", nullptr);
             ui->button_Check->setEnabled(true);
             a_check->setEnabled(true);
             i_ischecking = 0;
@@ -212,11 +212,11 @@ void MainWindow::CheckAll()
             IconSetMailCount(hasmessages);
             if(ignorecount >= hasmessages)
             {
-                myprintfs("You only have ignored messages. Skipping notification...\n", 0);
+                myprintfs("You only have ignored messages. Skipping notification...\n", nullptr);
             }
             else
             {
-                myprintfs("\nYou have unread mail, showing notification...\n", 0);
+                myprintfs("\nYou have unread mail, showing notification...\n", nullptr);
 
                 char *snd = sm->GetSoundFile();
                 if(snd && snd[0] != '\0')
@@ -241,18 +241,18 @@ void MainWindow::CheckAll()
                     }
                 }
 
-                NotificationWindow *nw = new NotificationWindow(0, psnippets, accs, sm);
+                NotificationWindow *nw = new NotificationWindow(nullptr, psnippets, accs, sm);
                 if(nw->exec()) systrayIcon->setIcon(QIcon("./images/tray1.png"));
 
                 delete nw;
             }
         }
-        else myprintfs("\nYou have no unread mail.\n", 0);
+        else myprintfs("\nYou have no unread mail.\n", nullptr);
 
         for(int i=0; i<accs; i++) if(psnippets[i].snippets) free(psnippets[i].snippets);
         free(psnippets);
     }
-    else myprintfs("Nothing to check, no accounts configured.\n", 0);
+    else myprintfs("Nothing to check, no accounts configured.\n", nullptr);
 
     ui->button_Check->setEnabled(true);
     a_check->setEnabled(true);
@@ -262,8 +262,8 @@ void MainWindow::CheckAll()
 
 void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, char *domain, int port, int ssl)
 {
-    BIO *bio = NULL;
-    char *response = NULL;
+    BIO *bio = nullptr;
+    char *response = nullptr;
 
     char phrase[BSIZE] = "";
 
@@ -275,29 +275,32 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
     sprintf(phrase, "Last checked: %02d:%02d:%02d", t->tm_hour, t->tm_min, t->tm_sec);
     systrayIcon->setToolTip(QString(phrase));
 
-    myprintfs("Connecting...\n", 0);
+    myprintfs("Connecting...\n", nullptr);
 
     bio = sslConnect(domain, port, ssl);
 
     if(!bio)
     {
-        if(response) free(response); response = 0;
-        myprintfs("Connection failed. Make sure you're connected to the internet and your account settings are right.\n", 0);
+        if(response) free(response);
+        response = nullptr;
+        myprintfs("Connection failed. Make sure you're connected to the internet and your account settings are right.\n", nullptr);
         return;
     }
 
-    response = messageExchange(bio, 0, -1);
+    response = messageExchange(bio, nullptr, -1);
 
     char *p = strstr(response, "* OK");
     if(!p)
     {
-        myprintfs("Connection failed. Make sure you're connected to the internet.", 0);
+        myprintfs("Connection failed. Make sure you're connected to the internet.", nullptr);
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
         return;
     }
 
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
     myprintfs("Connection successful. Checking account: %s", name);
     sprintf(phrase, "%d LOGIN %s %s\r\n", cmdcnt++, name, psw);
@@ -307,9 +310,10 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
     p = strstr(response, "1 OK ");
     if(!p)
     {
-        myprintfs("Login failed. Check your username and password.\n", 0);
+        myprintfs("Login failed. Check your username and password.\n", nullptr);
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
         return;
     }
 
@@ -328,7 +332,8 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
         free(namee);
     }
 
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
     sprintf(phrase, "%d SELECT INBOX\r\n", cmdcnt++);
     response = messageExchange(bio, phrase, cmdcnt-1);
@@ -336,15 +341,17 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
     p = strstr(response, "EXISTS");
     if(!p)
     {
-        myprintfs("Error. Cannot select INBOX.", 0);
+        myprintfs("Error. Cannot select INBOX.", nullptr);
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
         return;
     }
 
     myprintfi("\nYou have %d messages in your inbox.", responseToAllMsgNumber(response));
 
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
     sprintf(phrase, "%d SEARCH UNSEEN\r\n", cmdcnt++);
     response = messageExchange(bio, phrase, cmdcnt-1);
@@ -353,104 +360,114 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
     p = strstr(response, phrase);
     if(!p)
     {
-        myprintfs("Error finding unseen messageas.", 0);
-        myprintfs("\nLogging out...", 0);
+        myprintfs("Error finding unseen messageas.", nullptr);
+        myprintfs("\nLogging out...", nullptr);
 
         sprintf(phrase, "%d LOGOUT\r\n", cmdcnt++);
 
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         response = messageExchange(bio, phrase, cmdcnt-1);
 
         p = strstr(phrase, "LOGOUT"); p[0] = '\0'; strcat(phrase, "OK");
         p = strstr(response, phrase);
 
-        if(p) myprintfs("Successfully logged out.\n", 0);
-        else myprintfs("Failed to log out.\n", 0);
+        if(p) myprintfs("Successfully logged out.\n", nullptr);
+        else myprintfs("Failed to log out.\n", nullptr);
 
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         return;
     }
 
-    lista *l = NULL;
+    lista *l = nullptr;
 
     unrdcnt = responseToMsgList(response, &l);
 
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
     if(!l && unrdcnt != 0)
     {
-        myprintfs("Failed to store message list in memory.", 0);
-        myprintfs("\nLogging out...", 0);
+        myprintfs("Failed to store message list in memory.", nullptr);
+        myprintfs("\nLogging out...", nullptr);
 
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         sprintf(phrase, "%d LOGOUT\r\n", cmdcnt++);
 
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         response = messageExchange(bio, phrase, cmdcnt-1);
 
         p = strstr(phrase, "LOGOUT"); p[0] = '\0'; strcat(phrase, "OK");
         p = strstr(response, phrase);
 
-        if(p) myprintfs("Successfully logged out.\n", 0);
-        else myprintfs("Failed to log out.\n", 0);
+        if(p) myprintfs("Successfully logged out.\n", nullptr);
+        else myprintfs("Failed to log out.\n", nullptr);
 
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         return;
     }
 
     if(unrdcnt < 1)
     {
-        myprintfs("You have no unseen messages.", 0);
-        myprintfs("\nLogging out...", 0);
+        myprintfs("You have no unseen messages.", nullptr);
+        myprintfs("\nLogging out...", nullptr);
 
         sprintf(phrase, "%d LOGOUT\r\n", cmdcnt++);
 
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         response = messageExchange(bio, phrase, cmdcnt-1);
 
         p = strstr(phrase, "LOGOUT"); p[0] = '\0'; strcat(phrase, "OK");
         p = strstr(response, phrase);
 
-        if(p) myprintfs("Successfully logged out.\n", 0);
-        else myprintfs("Failed to log out.\n", 0);
+        if(p) myprintfs("Successfully logged out.\n", nullptr);
+        else myprintfs("Failed to log out.\n", nullptr);
 
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         return;
     }
 
-    if(unrdcnt == 1) myprintfs("You have 1 unseen message.", 0);
+    if(unrdcnt == 1) myprintfs("You have 1 unseen message.", nullptr);
     else myprintfi("You have %d unseen messages.", unrdcnt);
 
     snippets->count = unrdcnt;
     snippets->snippets = (snippet*)calloc(unrdcnt, sizeof(snippet));
     if(!snippets->snippets)
     {
-        myprintfs("Filed to allocate memory for email data. Aborting this account, logging out.", 0);
+        myprintfs("Filed to allocate memory for email data. Aborting this account, logging out.", nullptr);
 
         sprintf(phrase, "%d LOGOUT\r\n", cmdcnt++);
 
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         response = messageExchange(bio, phrase, cmdcnt-1);
 
         p = strstr(phrase, "LOGOUT"); p[0] = '\0'; strcat(phrase, "OK");
         p = strstr(response, phrase);
 
-        if(p) myprintfs("Successfully logged out.\n", 0);
-        else myprintfs("Failed to log out.\n", 0);
+        if(p) myprintfs("Successfully logged out.\n", nullptr);
+        else myprintfs("Failed to log out.\n", nullptr);
 
         sslDisconnect(bio);
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         return;
     }
@@ -461,7 +478,8 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
     while(1)
     {
         QApplication::processEvents();
-        if(response) free(response); response = 0;
+        if(response) free(response);
+        response = nullptr;
 
         snippets->snippets[index].msgid = lc->msg;
 
@@ -475,7 +493,7 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
 
         if(!p)
         {
-            myprintfs("Fetching data was unsuccessful!\n", 0);
+            myprintfs("Fetching data was unsuccessful!\n", nullptr);
             lc = lc->plist; if(!lc) break;
             continue;
         }
@@ -501,23 +519,23 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
             snippets->snippets[index].dt.hour,
             snippets->snippets[index].dt.minute,
             snippets->snippets[index].dt.second);
-        myprintfs(phrase, 0);
+        myprintfs(phrase, nullptr);
 
         if(IsIgnored(snippets->snippets[index].dt))
         {
             snippets->snippets[index].ignored = 1;
-            myprintfs("Message is ignored based on date.", 0);
+            myprintfs("Message is ignored based on date.", nullptr);
         }
         else
         {
             snippets->snippets[index].ignored = 0;
-            myprintfs("Message is not ignored based on date.", 0);
+            myprintfs("Message is not ignored based on date.", nullptr);
         }
 
         char *sender = responseToMsgSender(response);
         if(!sender)
         {
-            myprintfs("Message Sender: ***not present***", 0);
+            myprintfs("Message Sender: ***not present***", nullptr);
             strcpy(snippets->snippets[index].from, "\n\n\n\n\n");
         }
         else
@@ -546,30 +564,33 @@ void MainWindow::mailcheck(snippet_container *snippets, char *name, char *psw, c
         QApplication::processEvents();
     }
 
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
-    for(lista *pcurr = l; pcurr != 0; pcurr = lc)
+    for(lista *pcurr = l; pcurr != nullptr; pcurr = lc)
     {
         lc = pcurr->plist;
         free(pcurr);
     }
 
-    myprintfs("\nLogging out...", 0);
+    myprintfs("\nLogging out...", nullptr);
 
     sprintf(phrase, "%d LOGOUT\r\n", cmdcnt++);
 
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
     response = messageExchange(bio, phrase, cmdcnt-1);
 
     p = strstr(phrase, "LOGOUT"); p[0] = '\0'; strcat(phrase, "OK");
     p = strstr(response, phrase);
 
-    if(p) myprintfs("Successfully logged out.\n", 0);
-    else myprintfs("Failed to log out.\n", 0);
+    if(p) myprintfs("Successfully logged out.\n", nullptr);
+    else myprintfs("Failed to log out.\n", nullptr);
 
     sslDisconnect(bio);
-    if(response) free(response); response = 0;
+    if(response) free(response);
+    response = nullptr;
 
     return;
 }
@@ -591,7 +612,7 @@ char *MainWindow::messageExchange(BIO *bio, char *phrase, int msgidx)
         while(1)
         {
             char *tmp = sslRead(bio);
-            if(!tmp) return 0;
+            if(!tmp) return nullptr;
             strcat(r, tmp);
             free(tmp);
             if(strstr(r, msgok) || strstr(r, msgno) || strstr(r, msgbad) ||
@@ -603,7 +624,7 @@ char *MainWindow::messageExchange(BIO *bio, char *phrase, int msgidx)
     if(r[strlen(r)-1] != '\n') while(1)
     {
         char *tmp = sslRead(bio);
-        if(!tmp) return 0;
+        if(!tmp) return nullptr;
         strcat(r, tmp);
         free(tmp);
         if(r[strlen(r)] == '\n') break;
@@ -618,7 +639,7 @@ BIO *MainWindow::sslConnect(char *domain, int port, int secure)
     SSL* ssl;
     BIO* bio;
 
-    CRYPTO_malloc_init();
+    //CRYPTO_malloc_init();
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_BIO_strings();
@@ -629,7 +650,7 @@ BIO *MainWindow::sslConnect(char *domain, int port, int secure)
         ctx = SSL_CTX_new(SSLv23_client_method());
         SSL_CTX_set_timeout(ctx, 60);
     }
-    else ctx = 0;
+    else ctx = nullptr;
 
     if(secure) bio = BIO_new_ssl_connect(ctx);
     else
@@ -639,14 +660,14 @@ BIO *MainWindow::sslConnect(char *domain, int port, int secure)
         bio = BIO_new_connect(s);
     }
 
-    if(bio == NULL)
+    if(bio == nullptr)
     {
-        myprintfs("Error creating BIO!", 0);
+        myprintfs("Error creating BIO!", nullptr);
         systrayIcon->setToolTip(QString("Network error!"));
         i_networkerror = 1;
         ERR_print_errors_fp(stderr);
         if(ctx) SSL_CTX_free(ctx);
-        return 0;
+        return nullptr;
     }
 
     if(secure)
@@ -654,29 +675,29 @@ BIO *MainWindow::sslConnect(char *domain, int port, int secure)
         BIO_get_ssl(bio, &ssl);
         SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
         BIO_set_conn_hostname(bio, domain);
-        BIO_set_conn_int_port(bio, &iport);
+        BIO_set_conn_port(bio, &iport);
     }
 
     if(BIO_do_connect(bio) <= 0)
     {
-        myprintfs("Failed to connect!", 0);
+        myprintfs("Failed to connect!", nullptr);
         systrayIcon->setToolTip(QString::fromUtf8("Network error!"));
         i_networkerror = 1;
         if(bio) BIO_free_all(bio);
         if(ctx) SSL_CTX_free(ctx);
-        return 0;
+        return nullptr;
     }
 
     if(secure)
     {
         if(BIO_do_handshake(bio) <= 0)
         {
-            myprintfs("Failed to do SSL handshake!", 0);
+            myprintfs("Failed to do SSL handshake!", nullptr);
             systrayIcon->setToolTip(QString::fromUtf8("Network error!"));
             i_networkerror = 1;
             if(bio) BIO_free_all(bio);
             if(ctx) SSL_CTX_free(ctx);
-            return 0;
+            return nullptr;
         }
     }
 
@@ -692,7 +713,7 @@ void MainWindow::sslDisconnect(BIO *bio)
 char *MainWindow::sslRead(BIO *bio)
 {
     int readSize = BSIZE;
-    char *rc = NULL;
+    char *rc = nullptr;
     int received, count = 0;
     char buffer[BSIZE+1];
 
@@ -743,7 +764,7 @@ char *MainWindow::responseToName(char *response)
     char *p2 = strstr(p1, " "); p2++;
     p1 = strstr(p2, " auth");
 
-    if(!p1) return 0;
+    if(!p1) return nullptr;
 
     char *ret = (char*) calloc(BSIZE, sizeof(char));
 
@@ -774,7 +795,7 @@ char *MainWindow::responseToMsgSender(char *response)
     char *buffer = (char*) calloc(BSIZE, sizeof(char));
     char *p1 = strstr(response, "((");
 
-    if(p1[2] == 'N' && p1[3] == 'I' && p1[4] == 'L') return NULL;
+    if(p1[2] == 'N' && p1[3] == 'I' && p1[4] == 'L') return nullptr;
 
     char *p2 = strstr(p1+3, "\"");
 
@@ -815,7 +836,8 @@ int	MainWindow::responseToAllMsgNumber(char *response)
     char buffer[BSIZE];
     char *p1 = strstr(response, "EXISTS");
 
-    while(*(p1--) != '*'); p1+=3;
+    while(*(p1--) != '*');
+    p1+=3;
 
     char *p2 = strchr(p1, '\r');
 
@@ -833,7 +855,7 @@ int	MainWindow::responseToMsgList(char *response, lista **pList)
 
     if(!p1 || p1[0] == '\0')
     {
-        *pList = NULL;
+        *pList = nullptr;
         return 0;
     }
 
@@ -850,7 +872,7 @@ int	MainWindow::responseToMsgList(char *response, lista **pList)
         if(!p2)
         {
             lc->msg = atoi(p1);
-            lc->plist = NULL;
+            lc->plist = nullptr;
             break;
         }
 
@@ -1046,7 +1068,7 @@ void MainWindow::on_button_AnimStop_clicked()
     if(aqt)
     {
         aqt->stop();
-        delete aqt; aqt = 0;
+        delete aqt; aqt = nullptr;
     }
     if(!i_networkerror) systrayIcon->setIcon(QIcon("./images/tray1.png"));
     else systrayIcon->setIcon(QIcon("./images/tray7.png"));
@@ -1058,7 +1080,7 @@ int MainWindow::IsIgnored(datetime dt)
     memset(&cmp, 0, sizeof(cmp));
 
     time_t rawtime;
-    struct tm *timeinfo = 0;
+    struct tm *timeinfo = nullptr;
 
     time(&rawtime);
     timeinfo = gmtime(&rawtime);
@@ -1104,13 +1126,13 @@ void MainWindow::IconSetMailCount(int count)
 void MainWindow::on_button_Disable_clicked()
 {
     i_ischecking = 2;
-    myprintfs("Checking is now disabled.", 0);
+    myprintfs("Checking is now disabled.", nullptr);
 }
 
 void MainWindow::on_button_Enable_clicked()
 {
     i_ischecking = 0;
-    myprintfs("Checking is now enabled.", 0);
+    myprintfs("Checking is now enabled.", nullptr);
 }
 
 void MainWindow::IconClicked(QSystemTrayIcon::ActivationReason reason)
