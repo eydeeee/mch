@@ -635,9 +635,11 @@ char *MainWindow::messageExchange(BIO *bio, char *phrase, int msgidx)
 
 BIO *MainWindow::sslConnect(char *domain, int port, int secure)
 {
-    int iport = port;
+    char iport[8] = "";
     SSL* ssl;
     BIO* bio;
+
+    sprintf(iport, "%d", port);
 
     //CRYPTO_malloc_init();
     SSL_library_init();
@@ -675,7 +677,7 @@ BIO *MainWindow::sslConnect(char *domain, int port, int secure)
         BIO_get_ssl(bio, &ssl);
         SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
         BIO_set_conn_hostname(bio, domain);
-        BIO_set_conn_port(bio, &iport);
+        BIO_set_conn_port(bio, iport);
     }
 
     if(BIO_do_connect(bio) <= 0)
